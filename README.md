@@ -2,7 +2,7 @@
 
 ## ✨ Overview
 
-This is the codebase for the paper "Exploring and Leveraging Model Attention to Enhance Adversarial Attacks Against Pre-Trained Models". We propose AdvSel, a novel framework that enhances attack efficiency while maintaining effectiveness. Designed as a plug-and-play solution, AdvSel integrates seamlessly with existing attack techniques. It generates a large pool of mutated samples using current attack methods and then employs two key components—the Attention Proxy Model (APM) and the Deviation Direction Proxy Model (DDPM)—to identify suspicious samples more likely to mislead the model. By filtering out unlikely mutation candidates, AdvSel significantly reduces the need for frequent queries to the victim model. 
+This is the codebase for the paper "Cost-Effective Adversarial Attacks Against Pre-Trained Code Models with Model Attention". We propose AdvSel, a novel framework that enhances attack efficiency while maintaining effectiveness. Designed as a plug-and-play solution, AdvSel integrates seamlessly with existing attack techniques. It generates a large pool of mutated samples using current attack methods and then employs two key components—the Attention Proxy Model (APM) and the Deviation Direction Proxy Model (DDPM)—to identify suspicious samples more likely to mislead the model. By filtering out unlikely mutation candidates, AdvSel significantly reduces the need for frequent queries to the victim model. 
 
 ## 📁 Directory Structure
 
