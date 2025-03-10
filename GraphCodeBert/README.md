@@ -19,6 +19,7 @@ This Directory provide the code for the AdvSel attack on CodeBert model.
     │   ├── saved_models
     │   └── dataset         
     ├── DefectPrediction
+    ├── Comment-consist
     └── Vulnerability-prediction
 
 ## 📚 Training Probe
@@ -33,7 +34,7 @@ Then just run the code in the probe.ipynb file and save probe.
 
 ## 🚀 Running experiments
 
-Run the following command to attack the CodeBert model:
+Run the following command to attack the GraphCodeBert model:
 
 ### Alert:
 For Clone-detection task:

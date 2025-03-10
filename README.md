@@ -15,10 +15,13 @@ This is the codebase for the paper "Cost-Effective Adversarial Attacks Against P
     │   │   ├── saved_models        # Victim pre-trained models
     │   │   └── dataset             # Dataset for each task
     │   ├── DefectPrediction
+    │   ├── Comment-consist
     │   └── Vulnerability-prediction
     ├── CodeT5
     ├── GraphCodeBert
-    └── python_parser               # Code for parsing code samples
+    ├── PLBART
+    ├── python_parser               # Code for parsing code samples
+    └── result                      # Results of limiting the number of queries            
 
 ## 🔨 Setup environment
 - Prerequisite:

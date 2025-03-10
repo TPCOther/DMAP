@@ -34,7 +34,7 @@ class CodeT5RobertaClassificationHead(nn.Module):
 class Model(nn.Module):
     def __init__(self, encoder, config, tokenizer, args):
         super(Model, self).__init__()
-        self.encoder = encoder
+        self.encoder = encoder.encoder
         self.config = config
         self.tokenizer = tokenizer
         self.classifier = CodeT5RobertaClassificationHead(config)
@@ -45,12 +45,10 @@ class Model(nn.Module):
         input_ids = input_ids.view(-1, self.args.block_size)
         attention_mask = input_ids.ne(self.tokenizer.pad_token_id)
         if inputs_embeds is not None:
-            outputs = self.encoder(inputs_embeds=inputs_embeds, attention_mask=attention_mask,
-                                   labels=input_ids, decoder_attention_mask=attention_mask, output_hidden_states=True)
+            outputs = self.encoder(inputs_embeds=inputs_embeds, attention_mask=attention_mask, output_hidden_states=True)
         else:
-            outputs = self.encoder(input_ids=input_ids, attention_mask=attention_mask,
-                                labels=input_ids, decoder_attention_mask=attention_mask, output_hidden_states=True)
-        hidden_states = outputs['decoder_hidden_states'][-1]
+            outputs = self.encoder(input_ids=input_ids, attention_mask=attention_mask, output_hidden_states=True)
+        hidden_states = outputs['hidden_states'][-1]
         eos_mask = input_ids.eq(self.config.eos_token_id)
         if len(torch.unique(eos_mask.sum(1))) > 1:
             raise ValueError("All examples must have the same number of <eos> tokens.")
@@ -121,11 +119,11 @@ class Model(nn.Module):
             attention_mask=inputs.ne(self.tokenizer.pad_token_id)
             attention_mask = get_extended_attention_mask(attention_mask, inputs.size(), inputs.device)
             with torch.no_grad():
-                attention = self.encoder.shared(inputs)
+                attention = self.encoder.embed_tokens(inputs)
                 attention = attention, None
                 for i in range(layer):
-                    attention = self.encoder.encoder.block[i](attention[0], attention_mask = attention_mask, position_bias = attention[1])
-                attention_output = self.encoder.encoder.block[layer].layer[0].SelfAttention(attention[0], mask = attention_mask, position_bias = attention[1])
+                    attention = self.encoder.block[i](attention[0], attention_mask = attention_mask, position_bias = attention[1])
+                attention_output = self.encoder.block[layer].layer[0].SelfAttention(attention[0], mask = attention_mask, position_bias = attention[1])
                 attention_outputs.append(attention_output[0])
                 attentions.append(attention[0])
                 position_bias.append(attention[1])
@@ -149,12 +147,10 @@ class Model(nn.Module):
 
             with torch.no_grad():
                 for i in range(layer, 12):
-                    attention = self.encoder.encoder.block[i](attention[0], attention_mask = attention_mask, position_bias = attention[1])
-                encoder_hidden_state = self.encoder.encoder.final_layer_norm(attention[0])
-                decoder_input_ids = self.encoder.decoder._shift_right(inputs)
-                decoder_hidden_state = self.encoder.decoder(input_ids=decoder_input_ids, encoder_hidden_states = encoder_hidden_state, encoder_attention_mask=ori_attention_mask)
-                
-                hidden_states = decoder_hidden_state["last_hidden_state"]
+                    attention = self.encoder.block[i](attention[0], attention_mask = attention_mask, position_bias = attention[1])
+                encoder_hidden_state = self.encoder.final_layer_norm(attention[0])
+
+                hidden_states = encoder_hidden_state
                 eos_mask = inputs.eq(self.tokenizer.eos_token_id)
                 hidden_states = hidden_states[eos_mask, :].view(hidden_states.size(0), -1, hidden_states.size(-1))[:, -1, :]
 
@@ -169,3 +165,31 @@ class Model(nn.Module):
             pred_labels.append(np.argmax(logit))
         
         return probs, pred_labels
+    
+    def get_attentions_outputs(self, dataset, batch_size):
+        dataset = [[torch.tensor(x)] for x in dataset]
+        eval_sampler = SequentialSampler(dataset)
+        eval_dataloader = DataLoader(dataset, sampler=eval_sampler, batch_size=batch_size,num_workers=0,pin_memory=False)
+
+        self.eval()
+        attentions = []
+        attention_outputs = []
+        for batch in eval_dataloader:
+            inputs = batch[0].to("cuda").squeeze(1)
+            inputs = inputs.view(-1, self.args.block_size)
+            attention_mask=inputs.ne(self.tokenizer.pad_token_id)
+            attention_mask = get_extended_attention_mask(attention_mask, inputs.size(), inputs.device)
+            layer_attentions = []
+            attention_temp = []
+            with torch.no_grad():
+                attention = self.encoder.shared(inputs)
+                attention = attention, None
+                for i in range(12):
+                    attention_output = self.encoder.encoder.block[i].layer[0].SelfAttention(attention[0], mask = attention_mask, position_bias = attention[1])
+                    attention = self.encoder.encoder.block[i](attention[0], attention_mask = attention_mask, position_bias = attention[1], output_attentions=True)
+                    attention_temp.append(attention_output[0])
+                    layer_attentions.append(attention[0])
+                attention_outputs.append(torch.stack(attention_temp, dim=1).detach().cpu())
+                attentions.append(torch.stack(layer_attentions, dim=1).detach().cpu())
+
+        return torch.cat(attentions, 0), torch.cat(attention_outputs, 0)

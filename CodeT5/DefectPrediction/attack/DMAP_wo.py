@@ -14,7 +14,7 @@ def cal_sub_len(sub_weights, substituions):
 def get_attention_output(model, dataset, target_layer=5, batch_size=16):
     output_score, bias, input, attention_output = model.get_attentions_output(dataset, target_layer, batch_size)
     output_scores = output_score
-    return attention_output, bias, input, output_scores
+    return output_scores, bias, input, output_scores
 
 def rrf_rank(att_score, probe_score):
     att_rank = rankdata(att_score, method='ordinal')
